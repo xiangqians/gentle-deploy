@@ -1,0 +1,7 @@
+server:
+  port: 9999
+  servlet:
+    context-path: /
+
+  # 平滑部署密钥
+  secret: 3a5f0c4a-3bc7-11ed-911e-0242ac110002

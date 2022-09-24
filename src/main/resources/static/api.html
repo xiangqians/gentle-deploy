@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>API</title>
+
+    <style>
+        div {
+            margin-left: 30px;
+            margin-top: 30px;
+        }
+
+        a {
+            line-height: 30px;
+        }
+
+    </style>
+
+</head>
+<body style="margin: 20px">
+
+<h2>API</h2>
+
+<div>
+    <!--
+     | onchange="setSecret(this.value)"
+     | onpropertychange="setSecret(this.value)"
+     | oninput="setSecret(this.value)"
+    -->
+    <span>secret:</span>&nbsp;<input id="secret"
+                                     type="text"
+                                     style="width: 500px"
+                                     onchange="setSecret(this.value)"
+                                     oninput="setSecret(this.value)" />
+</div>
+
+<div>
+    <a href="javascript:void(0);" onclick="openUrl('/_api/server/register')">/_api/server/register</a>
+    ?host=<input id="host"
+                 type="text"
+                 style="width: 120px"
+                 onchange="setHost(this.value)"
+                 oninput="setHost(this.value)" />
+    &port=<input id="port"
+                 type="text"
+                 style="width: 50px"
+                 onchange="setPort(this.value)"
+                 oninput="setPort(this.value)" />
+    <br>
+    <a href="javascript:void(0);" onclick="openUrl('/_api/server/list')">/_api/server/list</a>
+    <br>
+    <a href="javascript:void(0);" onclick="openUrl('/_api/routes')">/_api/routes</a>
+    <br>
+</div>
+
+</body>
+</html>
+<script>
+
+    function openUrl(url) {
+        // let origin = window.location.origin;
+        // url = origin + url;
+        let host = document.getElementById('host').value;
+        let port = document.getElementById('port').value;
+        url = url + "?secret=" + getSecret() + "&host=" + host + "&port=" + port;
+        // console.log('url', url);
+        window.open(url);
+    }
+
+    function getSecret() {
+        return sessionStorage.getItem('secret');
+    }
+
+    function setSecret(value) {
+        console.log('setSecret', value)
+        sessionStorage.setItem('secret', value);
+        return true;
+    }
+
+    function getHost() {
+        return sessionStorage.getItem('host');
+    }
+
+    function setHost(value) {
+        sessionStorage.setItem('host', value);
+        return true;
+    }
+
+    function getPort() {
+        return sessionStorage.getItem('port');
+    }
+
+    function setPort(value) {
+        sessionStorage.setItem('port', value);
+        return true;
+    }
+
+    document.getElementById('secret').value = getSecret();
+    document.getElementById('host').value = getHost();
+    document.getElementById('port').value = getPort();
+
+</script>
