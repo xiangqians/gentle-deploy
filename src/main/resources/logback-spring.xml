@@ -103,23 +103,6 @@
     </appender>
 
     <!-- 指定包指定输出日志级别 -->
-    <logger name="org.hibernate" level="WARN">
-        <appender-ref ref="WARN_FILE"/>
-        <appender-ref ref="ERROR_FILE"/>
-    </logger>
-    <logger name="com.baomidou" level="WARN">
-        <appender-ref ref="WARN_FILE"/>
-        <appender-ref ref="ERROR_FILE"/>
-    </logger>
-    <logger name="net.sf" level="WARN">
-        <appender-ref ref="WARN_FILE"/>
-        <appender-ref ref="ERROR_FILE"/>
-    </logger>
-    <logger name="org.eclipse.jetty" level="INFO">
-        <appender-ref ref="INFO_FILE"/>
-        <appender-ref ref="WARN_FILE"/>
-        <appender-ref ref="ERROR_FILE"/>
-    </logger>
     <logger name="org.springframework" level="INFO">
         <appender-ref ref="INFO_FILE"/>
         <appender-ref ref="WARN_FILE"/>

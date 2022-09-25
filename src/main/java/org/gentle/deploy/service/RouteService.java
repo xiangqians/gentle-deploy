@@ -122,7 +122,7 @@ public class RouteService implements ApplicationEventPublisherAware, Application
         log.info("已配置的路由列表：{}\n", messageBuilder);
     }
 
-    public RouteDefinition createRouteDefinition(URI uri, String path, Integer stripPrefix) throws URISyntaxException {
+    public RouteDefinition createRouteDefinition(URI uri, String path, Integer stripPrefix) {
         return createRouteDefinition("test", uri, path, stripPrefix);
     }
 
@@ -136,7 +136,7 @@ public class RouteService implements ApplicationEventPublisherAware, Application
      * @return
      * @throws URISyntaxException
      */
-    private RouteDefinition createRouteDefinition(String id, URI uri, String path, Integer stripPrefix) throws URISyntaxException {
+    private RouteDefinition createRouteDefinition(String id, URI uri, String path, Integer stripPrefix) {
         // RouteDefinition
         RouteDefinition routeDefinition = new RouteDefinition();
 

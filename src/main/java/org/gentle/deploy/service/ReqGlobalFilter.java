@@ -13,8 +13,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.cloud.gateway.route.RouteDefinition;
-import org.springframework.context.ApplicationListener;
-import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
@@ -26,16 +24,13 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import javax.annotation.PostConstruct;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Future;
 
 /**
  * @author xiangqian
@@ -43,7 +38,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 @Component
-public class ReqGlobalFilter implements GlobalFilter, Ordered, ApplicationListener<ContextClosedEvent> {
+public class ReqGlobalFilter implements GlobalFilter, Ordered {
 
     @Value("${server.secret}")
     private String secret;
@@ -52,14 +47,13 @@ public class ReqGlobalFilter implements GlobalFilter, Ordered, ApplicationListen
     private ObjectMapper objectMapper;
 
     @Autowired
+    private ThreadExecutor threadExecutor;
+
+    @Autowired
     private RouteService routeService;
 
-    private ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
-
-    @PostConstruct
-    public void init() {
-        scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(2);
-    }
+    @Autowired
+    private ServerManager serverManager;
 
     @SneakyThrows
     @Override
@@ -99,7 +93,12 @@ public class ReqGlobalFilter implements GlobalFilter, Ordered, ApplicationListen
         if (StringUtils.equalsAny(rawPath, "/_api/server/register", "/_api/server/register/")) {
             String host = Optional.ofNullable(queryParams.get("host")).filter(CollectionUtils::isNotEmpty).map(list -> StringUtils.trim(list.get(0))).orElse(null);
             Integer port = Optional.ofNullable(queryParams.get("port")).filter(CollectionUtils::isNotEmpty).map(list -> NumberUtils.toInt(StringUtils.trim(list.get(0)), -1)).orElse(null);
-            if (Objects.nonNull(port) && port == -1) {
+            String path = Optional.ofNullable(queryParams.get("path")).filter(CollectionUtils::isNotEmpty).map(list -> StringUtils.trim(list.get(0))).orElse(null);
+
+            if (Objects.isNull(port)) {
+                port = 80; // http
+            }
+            if (port == -1) {
                 return response(exchange.getResponse(), HttpStatus.OK, "Failure".getBytes(StandardCharsets.UTF_8));
             }
 
@@ -107,23 +106,27 @@ public class ReqGlobalFilter implements GlobalFilter, Ordered, ApplicationListen
                 ReqAddr reqAddr = ReqAddr.get(request);
                 host = reqAddr.getHost();
             }
-            URI routeUri = new URI(String.format("http://%s:%s", host, port));
-            log.debug("{} -> {}", rawPath, routeUri);
-            RouteDefinition routeDefinition = routeService.createRouteDefinition(routeUri, "/**", null);
-            scheduledThreadPoolExecutor.schedule(() -> routeService.saveAndOverwriteIfExists(routeDefinition), 2, TimeUnit.SECONDS);
+
+            ServerAddr serverAddr = new ServerAddr();
+            serverAddr.setHost(host);
+            serverAddr.setPort(port);
+            serverAddr.setPath(path);
+            log.debug("add ServerAddr: {}", rawPath, serverAddr);
+            serverManager.add(serverAddr);
             return response(exchange.getResponse(), HttpStatus.OK, "Success".getBytes(StandardCharsets.UTF_8));
         }
 
         // http://localhost:9999/_api/server/list?secret=3a5f0c4a-3bc7-11ed-911e-0242ac110002
         if (StringUtils.equalsAny(rawPath, "/_api/server/list", "/_api/server/list/")) {
+            return response(exchange.getResponse(), HttpStatus.OK, objectMapper.writeValueAsBytes(serverManager.list()));
         }
 
         // http://localhost:9999/_api/routes?secret=3a5f0c4a-3bc7-11ed-911e-0242ac110002
         if (StringUtils.equalsAny(rawPath, "/_api/routes", "/_api/routes/")) {
             // java.lang.IllegalStateException: Iterating over a toIterable() / toStream() is blocking, which is not supported in thread reactor-http-nio-3
 //            List<RouteDefinition> routeDefinitions = routeService.list();
-            ScheduledFuture<List<RouteDefinition>> scheduledFuture = scheduledThreadPoolExecutor.schedule(() -> routeService.list(), 0, TimeUnit.SECONDS);
-            List<RouteDefinition> routeDefinitions = scheduledFuture.get();
+            Future<List<RouteDefinition>> future = threadExecutor.submit(() -> routeService.list());
+            List<RouteDefinition> routeDefinitions = future.get();
             return response(exchange.getResponse(), HttpStatus.OK, objectMapper.writeValueAsBytes(routeDefinitions));
         }
 
@@ -145,14 +148,6 @@ public class ReqGlobalFilter implements GlobalFilter, Ordered, ApplicationListen
     @Override
     public int getOrder() {
         return -Integer.MAX_VALUE;
-    }
-
-    @Override
-    public void onApplicationEvent(ContextClosedEvent event) {
-        if (Objects.nonNull(scheduledThreadPoolExecutor)) {
-            scheduledThreadPoolExecutor.shutdown();
-            scheduledThreadPoolExecutor = null;
-        }
     }
 
 }

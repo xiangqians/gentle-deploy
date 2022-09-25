@@ -46,6 +46,11 @@
                  style="width: 50px"
                  onchange="setPort(this.value)"
                  oninput="setPort(this.value)" />
+    &path=<input id="path"
+                 type="text"
+                 style="width: 120px"
+                 onchange="setPath(this.value)"
+                 oninput="setPath(this.value)" />
     <br>
     <a href="javascript:void(0);" onclick="openUrl('/_api/server/list')">/_api/server/list</a>
     <br>
@@ -62,7 +67,8 @@
         // url = origin + url;
         let host = document.getElementById('host').value;
         let port = document.getElementById('port').value;
-        url = url + "?secret=" + getSecret() + "&host=" + host + "&port=" + port;
+        let path = document.getElementById('path').value;
+        url = url + "?secret=" + getSecret() + "&host=" + host + "&port=" + port + "&path=" + path;
         // console.log('url', url);
         window.open(url);
     }
@@ -95,8 +101,18 @@
         return true;
     }
 
+    function getPath() {
+        return sessionStorage.getItem('path');
+    }
+
+    function setPath(value) {
+        sessionStorage.setItem('path', value);
+        return true;
+    }
+
     document.getElementById('secret').value = getSecret();
     document.getElementById('host').value = getHost();
     document.getElementById('port').value = getPort();
+    document.getElementById('path').value = getPath();
 
 </script>
